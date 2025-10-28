@@ -44,23 +44,22 @@
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
-
 FDCAN_HandleTypeDef hfdcan1;
 
 /* Definitions for defaultTask */
 
 /* USER CODE BEGIN PV */
-volatile uint16_t g_adcBuffer[8];
-osMessageQueueId_t g_adcDataQueueHandle;
+volatile uint16_t g_adcBuffer[8]; // Buffer used by DMA to store ADC values
+osMessageQueueId_t g_adcDataQueueHandle; //Queue to process ADC values
 // --- CAN Variables ---
-FDCAN_TxHeaderTypeDef g_canTxHeader; // لوصف رسالة الإرسال
-uint8_t g_canTxData[8];             // مخزن بيانات الإرسال (8 بايت)
-FDCAN_RxHeaderTypeDef g_canRxHeader; // لوصف الرسالة المستلمة
-uint8_t g_canRxData[8];             // مخزن بيانات الاستقبال
-osMessageQueueId_t g_brakeCommandQueueHandle;
+FDCAN_TxHeaderTypeDef g_canTxHeader; // To describe Tx msq
+uint8_t g_canTxData[8];             // To Store the data sent
+FDCAN_RxHeaderTypeDef g_canRxHeader; // To describe Rx msg
+uint8_t g_canRxData[8];             // To store Data Received
+osMessageQueueId_t g_brakeCommandQueueHandle; //Queue for brake commands
 // --- Shared Temperature Data ---
-float g_latestTemperatures[8]; // لتخزين آخر 8 درجات حرارة
-osMutexId_t g_temperatureMutexHandle; // لحماية الوصول للمتغير
+float g_latestTemperatures[8]; //To store last 8 degrees
+osMutexId_t g_temperatureMutexHandle; // Mutex to protect the variable
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -74,9 +73,9 @@ void StartDefaultTask(void *argument);
 /* USER CODE BEGIN PFP */
 void SensorProcessingTask(void *argument);
 float Resistance_To_Temperature(float resistance);
-void CanTxTask(void *argument);     // <--- أضف هذا
-void CanRxTask(void *argument);     // <--- أضف هذا
-void BrakeLightTask(void *argument); // <--- أضف هذا
+void CanTxTask(void *argument);
+void CanRxTask(void *argument);
+void BrakeLightTask(void *argument);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -156,30 +155,24 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  // تعريف مهمة معالجة الحساسات
   const osThreadAttr_t sensorProcessingTask_attributes = {
     .name = "SensorProcessingTask",
     .priority = (osPriority_t) osPriorityNormal,
-    .stack_size = 256 * 4 // نعطيها Stack أكبر لأن بها حسابات (float)
+    .stack_size = 256 * 4
   };
   osThreadNew(SensorProcessingTask, NULL, &sensorProcessingTask_attributes);
-  // مهمة إرسال الـ CAN
   const osThreadAttr_t canTxTask_attributes = {
     .name = "CanTxTask",
     .priority = (osPriority_t) osPriorityNormal,
     .stack_size = 128 * 4
   };
   osThreadNew(CanTxTask, NULL, &canTxTask_attributes);
-
-  // مهمة استقبال الـ CAN
   const osThreadAttr_t canRxTask_attributes = {
     .name = "CanRxTask",
-    .priority = (osPriority_t) osPriorityHigh, // نعطيها أولوية أعلى لتستجيب بسرعة
+    .priority = (osPriority_t) osPriorityHigh,
     .stack_size = 128 * 4
   };
   osThreadNew(CanRxTask, NULL, &canRxTask_attributes);
-
-  // مهمة التحكم بضوء الفرامل
   const osThreadAttr_t brakeLightTask_attributes = {
     .name = "BrakeLightTask",
     .priority = (osPriority_t) osPriorityNormal,
@@ -190,7 +183,10 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
-
+  if (HAL_ADC_Start_DMA(&hadc1, (uint32_t*)g_adcBuffer, 8) != HAL_OK)
+    {
+        Error_Handler(); // خطأ في بدء الـ ADC DMA
+    }
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
@@ -523,7 +519,7 @@ float AdcValue_To_Voltage(int adc_value) {
  * @brief يحول الجهد إلى مقاومة (بافتراض R15 = 47k)
  */
 float Voltage_To_Resistance(float voltage) {
-    const float V_SOURCE = 3.3; // (نفترض أن V_SOURCE هو نفسه VREF)
+    const float V_SOURCE = 3.3;
     const float R_FIXED = 47000.0;
 
     if (voltage >= V_SOURCE) {

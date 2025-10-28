@@ -27,25 +27,25 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
  11 .ARM.attributes 00000030  00000000  00000000  0000b060  2**0
                   CONTENTS, READONLY
- 12 .debug_info   0001f7a1  00000000  00000000  0000b090  2**0
+ 12 .debug_info   0001f7a2  00000000  00000000  0000b090  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_abbrev 00003df7  00000000  00000000  0002a831  2**0
+ 13 .debug_abbrev 00003e10  00000000  00000000  0002a832  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_aranges 00001be8  00000000  00000000  0002e628  2**3
+ 14 .debug_aranges 00001be8  00000000  00000000  0002e648  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_rnglists 0000157d  00000000  00000000  00030210  2**0
+ 15 .debug_rnglists 0000157d  00000000  00000000  00030230  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_macro  00003e01  00000000  00000000  0003178d  2**0
+ 16 .debug_macro  00003e01  00000000  00000000  000317ad  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   0001ceac  00000000  00000000  0003558e  2**0
+ 17 .debug_line   0001ceaa  00000000  00000000  000355ae  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    000f8ffa  00000000  00000000  0005243a  2**0
+ 18 .debug_str    000f8ffa  00000000  00000000  00052458  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000043  00000000  00000000  0014b434  2**0
+ 19 .comment      00000043  00000000  00000000  0014b452  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  00007dd8  00000000  00000000  0014b478  2**2
+ 20 .debug_frame  00007dd8  00000000  00000000  0014b498  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 21 .debug_line_str 00000057  00000000  00000000  00153250  2**0
+ 21 .debug_line_str 00000057  00000000  00000000  00153270  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -192,11 +192,11 @@ int main(void)
  80002b8:	4603      	mov	r3, r0
  80002ba:	4a32      	ldr	r2, [pc, #200]	@ (8000384 <main+0x164>)
  80002bc:	6013      	str	r3, [r2, #0]
+  /* Create the thread(s) */
   /* creation of defaultTask */
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  // تعريف مهمة معالجة الحساسات
   const osThreadAttr_t sensorProcessingTask_attributes = {
  80002be:	f107 036c 	add.w	r3, r7, #108	@ 0x6c
  80002c2:	2224      	movs	r2, #36	@ 0x24
@@ -211,7 +211,7 @@ int main(void)
  80002da:	f8c7 3084 	str.w	r3, [r7, #132]	@ 0x84
     .name = "SensorProcessingTask",
     .priority = (osPriority_t) osPriorityNormal,
-    .stack_size = 256 * 4 // نعطيها Stack أكبر لأن بها حسابات (float)
+    .stack_size = 256 * 4
   };
   osThreadNew(SensorProcessingTask, NULL, &sensorProcessingTask_attributes);
  80002de:	f107 036c 	add.w	r3, r7, #108	@ 0x6c
@@ -219,7 +219,6 @@ int main(void)
  80002e4:	2100      	movs	r1, #0
  80002e6:	4829      	ldr	r0, [pc, #164]	@ (800038c <main+0x16c>)
  80002e8:	f004 fef8 	bl	80050dc <osThreadNew>
-  // مهمة إرسال الـ CAN
   const osThreadAttr_t canTxTask_attributes = {
  80002ec:	f107 0348 	add.w	r3, r7, #72	@ 0x48
  80002f0:	2224      	movs	r2, #36	@ 0x24
@@ -242,8 +241,6 @@ int main(void)
  800030e:	2100      	movs	r1, #0
  8000310:	4820      	ldr	r0, [pc, #128]	@ (8000394 <main+0x174>)
  8000312:	f004 fee3 	bl	80050dc <osThreadNew>
-
-  // مهمة استقبال الـ CAN
   const osThreadAttr_t canRxTask_attributes = {
  8000316:	f107 0324 	add.w	r3, r7, #36	@ 0x24
  800031a:	2224      	movs	r2, #36	@ 0x24
@@ -257,7 +254,7 @@ int main(void)
  800032e:	2328      	movs	r3, #40	@ 0x28
  8000330:	63fb      	str	r3, [r7, #60]	@ 0x3c
     .name = "CanRxTask",
-    .priority = (osPriority_t) osPriorityHigh, // نعطيها أولوية أعلى لتستجيب بسرعة
+    .priority = (osPriority_t) osPriorityHigh,
     .stack_size = 128 * 4
   };
   osThreadNew(CanRxTask, NULL, &canRxTask_attributes);
@@ -266,8 +263,6 @@ int main(void)
  8000338:	2100      	movs	r1, #0
  800033a:	4818      	ldr	r0, [pc, #96]	@ (800039c <main+0x17c>)
  800033c:	f004 fece 	bl	80050dc <osThreadNew>
-
-  // مهمة التحكم بضوء الفرامل
   const osThreadAttr_t brakeLightTask_attributes = {
  8000340:	463b      	mov	r3, r7
  8000342:	2224      	movs	r2, #36	@ 0x24
@@ -1144,7 +1139,7 @@ float Voltage_To_Resistance(float voltage) {
  800085e:	b085      	sub	sp, #20
  8000860:	af00      	add	r7, sp, #0
  8000862:	ed87 0a01 	vstr	s0, [r7, #4]
-    const float V_SOURCE = 3.3; // (نفترض أن V_SOURCE هو نفسه VREF)
+    const float V_SOURCE = 3.3;
  8000866:	4b17      	ldr	r3, [pc, #92]	@ (80008c4 <Voltage_To_Resistance+0x68>)
  8000868:	60fb      	str	r3, [r7, #12]
     const float R_FIXED = 47000.0;
