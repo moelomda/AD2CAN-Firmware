@@ -1,0 +1,5 @@
+../App/Source/ad2can_can.c:20:6:CAN_Init_RTOS	5
+../App/Source/ad2can_can.c:54:6:CanTxTask	5
+../App/Source/ad2can_can.c:101:6:CanRxTask	1
+../App/Source/ad2can_can.c:109:6:BrakeLightTask	3
+../App/Source/ad2can_can.c:130:6:HAL_FDCAN_RxFifo0Callback	5

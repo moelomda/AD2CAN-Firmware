@@ -22,8 +22,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <math.h>
-#include <string.h>
+#include "app_config.h"
+#include "ad2can_hw.h"
+#include "ad2can_can.h"
+#include "ad2can.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,17 +51,7 @@ FDCAN_HandleTypeDef hfdcan1;
 /* Definitions for defaultTask */
 
 /* USER CODE BEGIN PV */
-volatile uint16_t g_adcBuffer[8]; // Buffer used by DMA to store ADC values
-osMessageQueueId_t g_adcDataQueueHandle; //Queue to process ADC values
-// --- CAN Variables ---
-FDCAN_TxHeaderTypeDef g_canTxHeader; // To describe Tx msq
-uint8_t g_canTxData[8];             // To Store the data sent
-FDCAN_RxHeaderTypeDef g_canRxHeader; // To describe Rx msg
-uint8_t g_canRxData[8];             // To store Data Received
-osMessageQueueId_t g_brakeCommandQueueHandle; //Queue for brake commands
-// --- Shared Temperature Data ---
-float g_latestTemperatures[8]; //To store last 8 degrees
-osMutexId_t g_temperatureMutexHandle; // Mutex to protect the variable
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -68,14 +60,10 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_FDCAN1_Init(void);
-void StartDefaultTask(void *argument);
+
 
 /* USER CODE BEGIN PFP */
-void SensorProcessingTask(void *argument);
-float Resistance_To_Temperature(float resistance);
-void CanTxTask(void *argument);
-void CanRxTask(void *argument);
-void BrakeLightTask(void *argument);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -124,10 +112,6 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
-  const osMutexAttr_t temperatureMutex_attributes = {
-    .name = "TempMutex"
-  };
-  g_temperatureMutexHandle = osMutexNew(&temperatureMutex_attributes);
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
@@ -140,14 +124,6 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
-  const osMessageQueueAttr_t g_adcDataQueue_attributes = {
-    .name = "AdcDataQueue"
-  };
-  g_adcDataQueueHandle = osMessageQueueNew(4, sizeof(uint16_t[8]), &g_adcDataQueue_attributes);
-  const osMessageQueueAttr_t brakeCommandQueue_attributes = {
-    .name = "BrakeCmdQueue"
-  };
-  g_brakeCommandQueueHandle = osMessageQueueNew(1, sizeof(uint8_t), &brakeCommandQueue_attributes);
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -155,38 +131,17 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  const osThreadAttr_t sensorProcessingTask_attributes = {
-    .name = "SensorProcessingTask",
-    .priority = (osPriority_t) osPriorityNormal,
-    .stack_size = 256 * 4
-  };
-  osThreadNew(SensorProcessingTask, NULL, &sensorProcessingTask_attributes);
-  const osThreadAttr_t canTxTask_attributes = {
-    .name = "CanTxTask",
-    .priority = (osPriority_t) osPriorityNormal,
-    .stack_size = 128 * 4
-  };
-  osThreadNew(CanTxTask, NULL, &canTxTask_attributes);
-  const osThreadAttr_t canRxTask_attributes = {
-    .name = "CanRxTask",
-    .priority = (osPriority_t) osPriorityHigh,
-    .stack_size = 128 * 4
-  };
-  osThreadNew(CanRxTask, NULL, &canRxTask_attributes);
-  const osThreadAttr_t brakeLightTask_attributes = {
-    .name = "BrakeLightTask",
-    .priority = (osPriority_t) osPriorityNormal,
-    .stack_size = 128 * 4
-  };
-  osThreadNew(BrakeLightTask, NULL, &brakeLightTask_attributes);
+
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
-  if (HAL_ADC_Start_DMA(&hadc1, (uint32_t*)g_adcBuffer, 8) != HAL_OK)
-    {
-        Error_Handler(); // خطأ في بدء الـ ADC DMA
-    }
+    HW_Init_ADC_RTOS();    // Creates ADC Queue
+    CAN_Init_RTOS();     // Creates CAN Tasks & Queue
+    App_Init_RTOS();     // Creates App Task & Mutex
+
+    /* 3. Start Hardware that requires RTOS objects to be ready */
+    HW_StartADC();       // Calls HAL_ADC_Start_DMA
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
@@ -505,282 +460,31 @@ static void MX_GPIO_Init(void)
 /**
  * @brief يحول قراءة الـ ADC الأولية (0-4095) إلى جهد.
  */
-float AdcValue_To_Voltage(int adc_value) {
-    const float VREF = 3.3;
-    const float MAX_ADC_VALUE = 4095.0;
 
-    if (adc_value < 0) adc_value = 0;
-    if (adc_value > 4095) adc_value = 4095;
-
-    return (adc_value / MAX_ADC_VALUE) * VREF;
-}
 
 /**
  * @brief يحول الجهد إلى مقاومة (بافتراض R15 = 47k)
  */
-float Voltage_To_Resistance(float voltage) {
-    const float V_SOURCE = 3.3;
-    const float R_FIXED = 47000.0;
 
-    if (voltage >= V_SOURCE) {
-        return INFINITY;
-    }
-    if (voltage <= 0) {
-        return 0.0;
-    }
-
-    // معادلة مقسم الجهد
-    return (voltage * R_FIXED) / (V_SOURCE - voltage);
-}
 /**
   * @brief مهمة معالجة بيانات الحساسات
   */
-void SensorProcessingTask(void *argument)
-{
-  uint16_t received_data[8];
-  float voltage;
-  float resistance;
-  float current_temperatures[8];
-
-  for(;;)
-  {
-    if (osMessageQueueGet(g_adcDataQueueHandle, &received_data, NULL, osWaitForever) == osOK)
-    {
-        HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
-
-        // حساب كل الـ 8 درجات حرارة وتخزينها مؤقتاً
-        // !!! انتبه لترتيب الـ Ranks الصحيح !!!
-        // Rank 1 -> CH1 -> received_data[0] -> Temp[0] (AN_IN_1)
-        // Rank 2 -> CH2 -> received_data[1] -> Temp[1] (AN_IN_2)
-        // Rank 3 -> CH3 -> received_data[2] -> Temp[2] (AN_IN_3)
-        // Rank 4 -> CH5 -> received_data[3] -> Temp[4] (AN_IN_5) // لاحظ الفهرس!
-        // Rank 5 -> CH11-> received_data[4] -> Temp[5] (AN_IN_6) // لاحظ الفهرس!
-        // Rank 6 -> CH12-> received_data[5] -> Temp[6] (AN_IN_7) // لاحظ الفهرس!
-        // Rank 7 -> CH14-> received_data[6] -> Temp[7] (AN_IN_8) // لاحظ الفهرس!
-        // Rank 8 -> CH15-> received_data[7] -> Temp[3] (AN_IN_4) // لاحظ الفهرس!
-
-        // (مثال لتبسيط الكود، يجب تطبيق هذا على كل الـ 8)
-        for (int i = 0; i < 8; i++) {
-            voltage = AdcValue_To_Voltage(received_data[i]);
-            resistance = Voltage_To_Resistance(voltage);
-            // (مؤقتاً سنضع قيمة وهمية، يجب استبدالها بدالة الحرارة الصحيحة وترتيبها الصحيح)
-            current_temperatures[i] = Resistance_To_Temperature(resistance);
-        }
-
-        // إعادة ترتيب النتائج لتطابق AN_IN_1..8
-        float ordered_temps[8];
-        ordered_temps[0] = current_temperatures[0]; // AN_IN_1 from Rank 1
-        ordered_temps[1] = current_temperatures[1]; // AN_IN_2 from Rank 2
-        ordered_temps[2] = current_temperatures[2]; // AN_IN_3 from Rank 3
-        ordered_temps[3] = current_temperatures[7]; // AN_IN_4 from Rank 8
-        ordered_temps[4] = current_temperatures[3]; // AN_IN_5 from Rank 4
-        ordered_temps[5] = current_temperatures[4]; // AN_IN_6 from Rank 5
-        ordered_temps[6] = current_temperatures[5]; // AN_IN_7 from Rank 6
-        ordered_temps[7] = current_temperatures[6]; // AN_IN_8 from Rank 7
 
 
-        // تحديث المتغير العام بأمان
-        if (osMutexAcquire(g_temperatureMutexHandle, osWaitForever) == osOK) {
-            memcpy(g_latestTemperatures, ordered_temps, sizeof(g_latestTemperatures));
-            osMutexRelease(g_temperatureMutexHandle);
-        }
-    }
-  }
-}
 
 /**
   * @brief  Conversion complete callback in non-blocking mode
   * @param  hadc: ADC handle
   * @retval None
   */
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
-{
-    static uint8_t first_read_skipped = 0;
 
-	if (hadc->Instance == ADC1)
-	{
-	    if (first_read_skipped == 0)
-	    {
-	        first_read_skipped = 1;
-	        return;
-	    }
 
-	    uint16_t snapshot_buffer[8];
-	    memcpy(snapshot_buffer, (const void*)g_adcBuffer, sizeof(snapshot_buffer)); // (أضفنا const void* للأمان مع volatile)
-
-	    // التحقق من حالة الـ Queue
-	    osStatus_t queue_status = osMessageQueuePut(g_adcDataQueueHandle, &snapshot_buffer, 0, 0);
-
-	    if (queue_status != osOK)
-	    {
-	        // حدث خطأ (الـ Queue ممتلئ)
-	        // (لأغراض الاختبار، سنقوم بتبديل الليد الأحمر)
-	        HAL_GPIO_TogglePin(LED_RED_GPIO_Port, LED_RED_Pin);
-	    }
-	}
-}
-/**
- * @brief يحول مقاومة الـ NTC (بالأوم) إلى درجة حرارة (بالدرجة المئوية).
- * يستخدم معادلة Steinhart-Hart بمعاملات افتراضية لحساس 10k NTC.
- * !!! يجب تحديث المعاملات A, B, C لتطابق الحساس الفعلي !!!
- */
-float Resistance_To_Temperature(float resistance) {
-    // معاملات Steinhart-Hart (افتراضية لحساس 10k NTC شائع)
-    const float A = 0.001129148f;
-    const float B = 0.000234125f;
-    const float C = 0.0000000876741f;
-
-    // حساب لوغاريتم المقاومة
-    float log_resistance = logf(resistance); // logf هي log لـ float
-
-    // تطبيق معادلة Steinhart-Hart لحساب مقلوب الحرارة بالكلفن
-    float inv_kelvin = A + (B * log_resistance) + (C * powf(log_resistance, 3)); // powf لرفع الأس 3
-
-    // حساب الحرارة بالكلفن
-    float kelvin = 1.0f / inv_kelvin;
-
-    // تحويل من كلفن إلى درجة مئوية
-    float celsius = kelvin - 273.15f;
-
-    return celsius;
-}
-void CanTxTask(void *argument)
-{
-  // --- تهيئة رأس رسالة الإرسال (مرة واحدة) ---
-  g_canTxHeader.Identifier = 0x100; // ID الإرسال (افتراضنا)
-  g_canTxHeader.IdType = FDCAN_STANDARD_ID;
-  g_canTxHeader.TxFrameType = FDCAN_DATA_FRAME;
-  g_canTxHeader.DataLength = FDCAN_DLC_BYTES_8; // سنرسل 8 بايت
-  g_canTxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
-  g_canTxHeader.BitRateSwitch = FDCAN_BRS_OFF;
-  g_canTxHeader.FDFormat = FDCAN_CLASSIC_CAN; // ليس CAN FD
-  g_canTxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
-  g_canTxHeader.MessageMarker = 0;
-
-  // --- بدء تشغيل طرفية الـ CAN ---
-  if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK) {
-      Error_Handler(); // خطأ في بدء الـ CAN
-  }
-
-  float local_temps[8]; // متغير محلي لنسخ الحرارة
-
-  /* Infinite loop */
-  for(;;)
-  {
-    // الانتظار لمدة 100 ميللي ثانية
-    osDelay(100);
-
-    // 1. قراءة آخر درجات حرارة بأمان
-    if (osMutexAcquire(g_temperatureMutexHandle, 10) == osOK) { // ننتظر 10ms فقط
-        memcpy(local_temps, g_latestTemperatures, sizeof(local_temps));
-        osMutexRelease(g_temperatureMutexHandle);
-
-        // 2. تجهيز بيانات الإرسال (g_canTxData)
-        //    (هنا تحتاج لتحديد كيفية تحويل الـ float إلى uint8_t)
-        //    مثال بسيط: إرسال أول 4 درجات كـ float (كل واحدة 2 بايت)
-        //    !!! هذا يعتمد على البروتوكول المتفق عليه !!!
-        //    (للتوضيح، سنرسل قيم وهمية الآن)
-        for(int i=0; i<8; i++) {
-            // تحويل درجة الحرارة (مثلاً 25.5) إلى قيمة مناسبة للإرسال
-            // طريقة شائعة: ضرب في 10 وإرسال كـ integer (255)
-            int16_t temp_to_send = (int16_t)(local_temps[i] * 10.0f);
-            // وضع البايتين في مصفوفة الإرسال
-            // (هذا مثال، ترتيب البايتات (Endianness) مهم)
-            if (i < 4) { // نرسل أول 4 حساسات فقط كمثال
-               g_canTxData[i*2]   = (uint8_t)(temp_to_send >> 8); // MSB
-               g_canTxData[i*2+1] = (uint8_t)(temp_to_send & 0xFF); // LSB
-            }
-        }
-        g_canTxHeader.DataLength = FDCAN_DLC_BYTES_8; // نرسل 8 بايت (4 درجات * 2 بايت)
-
-        // 3. إرسال رسالة الـ CAN
-        if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &g_canTxHeader, g_canTxData) != HAL_OK)
-        {
-            // خطأ في الإرسال (قد يكون الـ FIFO ممتلئ)
-            // (يمكن تبديل الليد الأحمر هنا كإشارة خطأ)
-             HAL_GPIO_TogglePin(LED_RED_GPIO_Port, LED_RED_Pin);
-        }
-    } else {
-        // لم نتمكن من الحصول على الـ Mutex (قد تكون مهمة المعالجة مشغولة)
-        // تجاهل الإرسال هذه المرة
-    }
-  }
-}
 /**
   * @brief  Rx FIFO 0 New Message callback.
   * @param  hfdcan: FDCAN handle
   * @param  RxFifo0ITs: FIFO 0 Interrupt sources enabled.
   * @retval None
   */
-void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
-{
-  if((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET)
-  {
-    // Retrieve the received message from RX FIFO 0
-    if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &g_canRxHeader, g_canRxData) == HAL_OK)
-    {
-      // Check if the received ID matches our expected brake command ID
-      if (g_canRxHeader.Identifier == 0x200)
-      {
-        // Assuming the command (0=OFF, 1=ON) is in the first data byte
-        uint8_t brake_command = g_canRxData[0];
-
-        // Send the command to the BrakeLightTask via queue (from ISR context)
-        osMessageQueuePut(g_brakeCommandQueueHandle, &brake_command, 0, 0);
-      }
-    }
-    /* Clear the RX FIFO 0 new message flag */
-    // Note: HAL_FDCAN_GetRxMessage should clear the flag, but double-check HAL version specifics if issues arise.
-  }
-}
-/**
-  * @brief Task for receiving and routing CAN messages.
-  */
-void CanRxTask(void *argument)
-{
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1000); // Placeholder delay - tasks shouldn't block like this normally
-  }
-}
-
-/**
-  * @brief Task for controlling the brake light GPIO.
-  */
-void BrakeLightTask(void *argument)
-{
-  uint8_t received_command; // Variable to store the command from the queue
-
-  /* Infinite loop */
-  for(;;)
-  {
-    // Wait forever (block) until a command arrives in the brake command queue
-    if (osMessageQueueGet(g_brakeCommandQueueHandle, &received_command, NULL, osWaitForever) == osOK)
-    {
-      // Check the command value
-      if (received_command == 1) // Assuming 1 means ON
-      {
-        // Turn the brake light ON (Set PA8 High)
-        HAL_GPIO_WritePin(BL_ENABLE_GPIO_Port, BL_ENABLE_Pin, GPIO_PIN_SET);
-      }
-      else // Assuming any other value (like 0) means OFF
-      {
-        // Turn the brake light OFF (Set PA8 Low)
-        HAL_GPIO_WritePin(BL_ENABLE_GPIO_Port, BL_ENABLE_Pin, GPIO_PIN_RESET);
-      }
-    }
-  }
-}
-/* USER CODE END 4 */
-
-/* USER CODE BEGIN Header_StartDefaultTask */
-/**
-  * @brief  Function implementing the defaultTask thread.
-  * @param  argument: Not used
-  * @retval None
-  */
-/* USER CODE END Header_StartDefaultTask */
 
 /**
   * @brief  Period elapsed callback in non blocking mode

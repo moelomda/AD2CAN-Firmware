@@ -1,0 +1,7 @@
+../App/Source/ad2can_hw.c:18:6:HW_Init_ADC_RTOS	32	static
+../App/Source/ad2can_hw.c:27:6:HW_StartADC	8	static
+../App/Source/ad2can_hw.c:37:20:HW_GetAdcQueueHandle	4	static
+../App/Source/ad2can_hw.c:44:7:AdcValue_To_Voltage	16	static
+../App/Source/ad2can_hw.c:50:7:Voltage_To_Resistance	16	static
+../App/Source/ad2can_hw.c:60:7:Resistance_To_Temperature	40	static
+../App/Source/ad2can_hw.c:78:6:HAL_ADC_ConvCpltCallback	48	static
