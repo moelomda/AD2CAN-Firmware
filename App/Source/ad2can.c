@@ -1,71 +1,60 @@
 #include "ad2can.h"
-#include "ad2can_hw.h" // To get data from ADC queue and use calc functions
+#include "ad2can_hw.h"
 #include <string.h>
+#include "main.h"
 
-/* --- Shared Global Variables (Definitions) --- */
-float g_latestTemperatures[ADC_NUMBER_OF_CHANNELS];
-osMutexId_t g_temperatureMutexHandle;
+ProcessedADC_t g_sensorData;
 
 /* --- RTOS Object Initialization --- */
 
 void App_Init_RTOS(void)
 {
-    // Create the mutex for protecting temperature data
-    const osMutexAttr_t temperatureMutex_attributes = {
-        .name = "TempMutex"
+    const osMutexAttr_t sensorDataMutex_attributes = {
+        .name = "SensorDataMutex"
     };
-    g_temperatureMutexHandle = osMutexNew(&temperatureMutex_attributes);
-    if (g_temperatureMutexHandle == NULL) { Error_Handler(); }
+    g_sensorDataMutexHandle = osMutexNew(&sensorDataMutex_attributes);
+    if (g_sensorDataMutexHandle == NULL) { Error_Handler(); }
 
-    // Create Sensor Processing Task
     const osThreadAttr_t sensorProcessingTask_attributes = {
         .name = "SensorProcessingTask",
         .priority = (osPriority_t) osPriorityNormal,
-        .stack_size = 256 * 4 // Larger stack for float calculations
+        .stack_size = 256 * 4
     };
     if(osThreadNew(SensorProcessingTask, NULL, &sensorProcessingTask_attributes) == NULL) { Error_Handler(); }
 }
 
 /* --- Task Definitions --- */
 
+/**
+ * @brief مهمة معالجة بيانات الـ ADC الـ 6 المستلمة من الـ Queue
+ */
 void SensorProcessingTask(void *argument)
 {
-  uint16_t received_data[ADC_NUMBER_OF_CHANNELS];
-  float voltage;
-  float resistance;
-  float current_temperatures[ADC_NUMBER_OF_CHANNELS]; // Unordered temps
-  float ordered_temps[ADC_NUMBER_OF_CHANNELS];      // Ordered temps
+  uint16_t received_adc_data[ADC_NUMBER_OF_CHANNELS]; // سيستقبل 6 قراءات
+  ProcessedADC_t local_sensor_data; // هيكل محلي لتجهيز البيانات
 
-  // Get the ADC queue handle from the HW module
   osMessageQueueId_t adcQueue = HW_GetAdcQueueHandle();
+
+
 
   for(;;)
   {
-    if (osMessageQueueGet(adcQueue, &received_data, NULL, osWaitForever) == osOK)
+
+    if (osMessageQueueGet(adcQueue, received_adc_data, NULL, osWaitForever) == osOK)
     {
         HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
 
-        // Calculate all 8 temperatures (in Rank order)
-        for (int i = 0; i < ADC_NUMBER_OF_CHANNELS; i++) {
-            voltage = AdcValue_To_Voltage(received_data[i]);
-            resistance = Voltage_To_Resistance(voltage);
-            current_temperatures[i] = Resistance_To_Temperature(resistance);
-        }
 
-        // Reorder results to match logical AN_IN_1..8
-        ordered_temps[ADC_RANK_TO_AN_IN_1] = current_temperatures[0];
-        ordered_temps[ADC_RANK_TO_AN_IN_2] = current_temperatures[1];
-        ordered_temps[ADC_RANK_TO_AN_IN_3] = current_temperatures[2];
-        ordered_temps[ADC_RANK_TO_AN_IN_4] = current_temperatures[7];
-        ordered_temps[ADC_RANK_TO_AN_IN_5] = current_temperatures[3];
-        ordered_temps[ADC_RANK_TO_AN_IN_6] = current_temperatures[4];
-        ordered_temps[ADC_RANK_TO_AN_IN_7] = current_temperatures[5];
-        ordered_temps[ADC_RANK_TO_AN_IN_8] = current_temperatures[6];
+        local_sensor_data.brake_pressure_front = HW_GetPressure(received_adc_data[0]); // Rank 1
+        local_sensor_data.brake_pressure_rear  = HW_GetPressure(received_adc_data[1]); // Rank 2
+        local_sensor_data.steering_angle       = HW_GetSteeringAngle(received_adc_data[2]); // Rank 3 (CH5)
 
-        // Safely update the global temperature array
-        if (osMutexAcquire(g_temperatureMutexHandle, osWaitForever) == osOK) {
-            memcpy(g_latestTemperatures, ordered_temps, sizeof(g_latestTemperatures));
-            osMutexRelease(g_temperatureMutexHandle);
+        local_sensor_data.apps1                = received_adc_data[3]; // Rank 4 (CH11)
+        local_sensor_data.apps2                = received_adc_data[4]; // Rank 5 (CH12)
+        if (osMutexAcquire(g_sensorDataMutexHandle, osWaitForever) == osOK)
+        {
+            memcpy(&g_sensorData, &local_sensor_data, sizeof(ProcessedADC_t));
+            osMutexRelease(g_sensorDataMutexHandle);
         }
     }
   }

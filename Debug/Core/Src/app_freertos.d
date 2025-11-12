@@ -38,7 +38,14 @@ Core/Src/app_freertos.o: ../Core/Src/app_freertos.c \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pwr.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pwr_ex.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim.h \
- ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim_ex.h
+ ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim_ex.h \
+ F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/app_config.h \
+ F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_hw.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h \
+ F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/app_config.h \
+ F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_can.h \
+ F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can.h
 ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:
 ../Core/Inc/FreeRTOSConfig.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h:
@@ -80,3 +87,10 @@ Core/Src/app_freertos.o: ../Core/Src/app_freertos.c \
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pwr_ex.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim_ex.h:
+F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/app_config.h:
+F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_hw.h:
+../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h:
+../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h:
+F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/app_config.h:
+F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_can.h:
+F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can.h:

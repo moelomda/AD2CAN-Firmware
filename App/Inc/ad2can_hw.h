@@ -7,22 +7,21 @@
 
 /* --- Public Function Prototypes --- */
 
-/** @brief Initializes ADC-related RTOS objects (Queues) */
+// --- ADC Functions ---
 void HW_Init_ADC_RTOS(void);
-
-/** @brief Starts the ADC DMA hardware */
 void HW_StartADC(void);
-
-/** @brief Gets the handle for the ADC data queue */
 osMessageQueueId_t HW_GetAdcQueueHandle(void);
 
-/** @brief Converts raw ADC value (0-4095) to voltage */
-float AdcValue_To_Voltage(int adc_value);
+// --- RPM Functions ---
+void HW_Init_RPM(void);
+uint16_t HW_Get_RPM_Left(void);
+uint16_t HW_Get_RPM_Right(void);
+uint16_t HW_MovingMaxL(uint16_t ws_left);
+uint16_t HW_MovingMaxR(uint16_t ws_right);
 
-/** @brief Converts voltage from voltage divider to resistance */
-float Voltage_To_Resistance(float voltage);
+// --- Sensor Calculation Functions
+uint16_t HW_GetPressure(uint16_t adc_value);
+int16_t HW_GetSteeringAngle(uint16_t adc_value);
 
-/** @brief Converts NTC resistance (Ohms) to Temperature (Celsius) */
-float Resistance_To_Temperature(float resistance);
 
 #endif /* INC_AD2CAN_HW_H_ */

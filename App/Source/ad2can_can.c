@@ -1,15 +1,12 @@
 #include "ad2can_can.h"
-#include "ad2can.h" // To access the shared temperature data
+#include "main.h"
+#include "ad2can.h"
+#include "ad2can_hw.h"
 #include <string.h>
 
 /* --- File-Scope Variables --- */
-// HAL Handles (defined in main.c, accessed via extern)
 extern FDCAN_HandleTypeDef hfdcan1;
-
-// RTOS Objects
-osMessageQueueId_t g_brakeCommandQueueHandle; //Queue for brake commands
-
-// Buffers
+osMessageQueueId_t g_brakeCommandQueueHandle;
 FDCAN_TxHeaderTypeDef g_canTxHeader;
 uint8_t g_canTxData[8];
 FDCAN_RxHeaderTypeDef g_canRxHeader;
@@ -19,18 +16,18 @@ uint8_t g_canRxData[8];
 
 void CAN_Init_RTOS(void)
 {
-    // Create Brake Command Queue
+
     const osMessageQueueAttr_t brakeCommandQueue_attributes = {
         .name = "BrakeCmdQueue"
     };
     g_brakeCommandQueueHandle = osMessageQueueNew(1, sizeof(uint8_t), &brakeCommandQueue_attributes);
     if (g_brakeCommandQueueHandle == NULL) { Error_Handler(); }
 
-    // Create CAN Tasks
+
     const osThreadAttr_t canTxTask_attributes = {
         .name = "CanTxTask",
         .priority = (osPriority_t) osPriorityNormal,
-        .stack_size = 192 * 4
+        .stack_size = 256 * 4 // زيادة الـ Stack قليلاً
     };
     if(osThreadNew(CanTxTask, NULL, &canTxTask_attributes) == NULL) { Error_Handler(); }
 
@@ -51,50 +48,85 @@ void CAN_Init_RTOS(void)
 
 /* --- Task Definitions --- */
 
+/**
+ * @brief
+ */
 void CanTxTask(void *argument)
 {
-  // --- Configure CAN Transmission Header (once) ---
-  g_canTxHeader.Identifier = CAN_ID_TX_TEMPS;
+  ProcessedADC_t local_sensor_data;
+  uint16_t rpmLeft, rpmRight;
+
   g_canTxHeader.IdType = FDCAN_STANDARD_ID;
   g_canTxHeader.TxFrameType = FDCAN_DATA_FRAME;
-  g_canTxHeader.DataLength = FDCAN_DLC_BYTES_8;
   g_canTxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
   g_canTxHeader.BitRateSwitch = FDCAN_BRS_OFF;
   g_canTxHeader.FDFormat = FDCAN_CLASSIC_CAN;
   g_canTxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
   g_canTxHeader.MessageMarker = 0;
 
-  // --- Start the FDCAN Peripheral ---
   if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK)
   { Error_Handler(); }
 
-  float local_temps[8]; // Local buffer
+  g_canTxHeader.Identifier = CAN_ID_AD2CAN_STARTUP;
+  g_canTxHeader.DataLength = FDCAN_DLC_BYTES_1;
+  g_canTxData[0] = 0xAA;
+  HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &g_canTxHeader, g_canTxData);
+  uint8_t dv_counter = 0;
 
   for(;;)
   {
-    osDelay(CAN_TX_PERIOD_MS);
 
-    if (osMutexAcquire(g_temperatureMutexHandle, 10) == osOK)
+
+    osDelay(10);
+    if (osMutexAcquire(g_sensorDataMutexHandle, 10) == osOK)
     {
-        memcpy(local_temps, g_latestTemperatures, sizeof(local_temps));
-        osMutexRelease(g_temperatureMutexHandle);
-
-        // --- Prepare CAN Tx Data (Example Format) ---
-        for(int i = 0; i < 4; i++) // Send first 4 sensors
-        {
-            int16_t temp_to_send = (int16_t)(local_temps[i] * 10.0f);
-            g_canTxData[i*2]   = (uint8_t)(temp_to_send >> 8);    // MSB
-            g_canTxData[i*2+1] = (uint8_t)(temp_to_send & 0xFF); // LSB
-        }
-        g_canTxHeader.DataLength = FDCAN_DLC_BYTES_8;
-
-        if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &g_canTxHeader, g_canTxData) != HAL_OK)
-        {
-             HAL_GPIO_TogglePin(LED_RED_GPIO_Port, LED_RED_Pin); // Tx Error
-        }
+        memcpy(&local_sensor_data, &g_sensorData, sizeof(ProcessedADC_t));
+        osMutexRelease(g_sensorDataMutexHandle);
     } else {
-         HAL_GPIO_TogglePin(LED_RED_GPIO_Port, LED_RED_Pin); // Mutex Error
+        HAL_GPIO_TogglePin(LED_RED_GPIO_Port, LED_RED_Pin);
+        continue;
     }
+
+
+    rpmLeft  = HW_MovingMaxL(HW_Get_RPM_Left());
+    rpmRight = HW_MovingMaxR(HW_Get_RPM_Right());
+
+
+    g_canTxHeader.Identifier = CAN_ID_AD2CAN_F1_1;
+    g_canTxHeader.DataLength = FDCAN_DLC_BYTES_8;
+    g_canTxData[0] = local_sensor_data.apps1 & 0xFF;
+    g_canTxData[1] = local_sensor_data.apps1 >> 8;
+    g_canTxData[2] = local_sensor_data.apps2 & 0xFF;
+    g_canTxData[3] = local_sensor_data.apps2 >> 8;
+    g_canTxData[4] = local_sensor_data.steering_angle & 0xFF;
+    g_canTxData[5] = local_sensor_data.steering_angle >> 8;
+    g_canTxData[6] = local_sensor_data.brake_pressure_front & 0xFF;
+    g_canTxData[7] = local_sensor_data.brake_pressure_front >> 8;
+    HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &g_canTxHeader, g_canTxData);
+
+    g_canTxHeader.Identifier = CAN_ID_AD2CAN_F1_2;
+    g_canTxHeader.DataLength = FDCAN_DLC_BYTES_7;
+    g_canTxData[0] = rpmLeft & 0xFF;
+    g_canTxData[1] = rpmLeft >> 8;
+    g_canTxData[2] = rpmRight & 0xFF;
+    g_canTxData[3] = rpmRight >> 8;
+    g_canTxData[4] = local_sensor_data.brake_pressure_rear & 0xFF;
+    g_canTxData[5] = local_sensor_data.brake_pressure_rear >> 8;
+    g_canTxData[6] = 0; // (كودهم كان يقرأ GPIOs، سنضع 0 مؤقتاً)
+    HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &g_canTxHeader, g_canTxData);
+
+    // 5. إرسال الرسالة الثالثة (كل 10 دورات)
+    if(dv_counter == 0){
+        g_canTxHeader.Identifier = CAN_ID_DV_SENSORS_FRONT;
+        g_canTxHeader.DataLength = FDCAN_DLC_BYTES_4;
+        g_canTxData[0] = local_sensor_data.brake_pressure_rear & 0xFF;
+        g_canTxData[1] = local_sensor_data.brake_pressure_rear >> 8;
+        g_canTxData[2] = local_sensor_data.brake_pressure_front & 0xFF;
+        g_canTxData[3] = local_sensor_data.brake_pressure_front >> 8;
+        HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &g_canTxHeader, g_canTxData);
+    }
+    dv_counter++;
+    dv_counter %= 10;
   }
 }
 
@@ -102,7 +134,7 @@ void CanRxTask(void *argument)
 {
   for(;;)
   {
-    osDelay(1000); // Idle task, logic is in callback
+    osDelay(1000);
   }
 }
 
@@ -113,11 +145,11 @@ void BrakeLightTask(void *argument)
   {
     if (osMessageQueueGet(g_brakeCommandQueueHandle, &received_command, NULL, osWaitForever) == osOK)
     {
-      if (received_command == 1) // Command for ON
+      if (received_command == 1)
       {
         HAL_GPIO_WritePin(BL_ENABLE_GPIO_Port, BL_ENABLE_Pin, GPIO_PIN_SET);
       }
-      else // Command for OFF
+      else
       {
         HAL_GPIO_WritePin(BL_ENABLE_GPIO_Port, BL_ENABLE_Pin, GPIO_PIN_RESET);
       }
@@ -125,7 +157,6 @@ void BrakeLightTask(void *argument)
   }
 }
 
-/* --- HAL Callback Functions --- */
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 {
@@ -133,6 +164,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
   {
     if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &g_canRxHeader, g_canRxData) == HAL_OK)
     {
+
       if (g_canRxHeader.Identifier == CAN_ID_RX_BRAKE)
       {
         if (g_canRxHeader.DataLength >= FDCAN_DLC_BYTES_1)
@@ -141,6 +173,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
             osMessageQueuePut(g_brakeCommandQueueHandle, &brake_command, 0, 0);
         }
       }
+
     }
   }
 }

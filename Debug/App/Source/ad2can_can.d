@@ -31,6 +31,8 @@ App/Source/ad2can_can.o: ../App/Source/ad2can_can.c \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pwr_ex.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim_ex.h \
+ F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/app_config.h \
+ F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_hw.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h \
  ../Core/Inc/FreeRTOSConfig.h \
@@ -77,6 +79,8 @@ F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_can.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pwr_ex.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim_ex.h:
+F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/app_config.h:
+F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_hw.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:
 ../Core/Inc/FreeRTOSConfig.h:

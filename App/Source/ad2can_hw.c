@@ -1,17 +1,27 @@
 #include "ad2can_hw.h"
+#include "main.h"
 #include <math.h>
 #include <string.h>
 
 /* --- File-Scope Variables --- */
-// HAL Handles (defined in main.c, accessed via extern)
 extern ADC_HandleTypeDef hadc1;
 extern DMA_HandleTypeDef hdma_adc1;
+extern TIM_HandleTypeDef htim3;  // افترضنا أن CubeIDE سمّاها هكذا
+extern TIM_HandleTypeDef htim15; // افترضنا أن CubeIDE سمّاها هكذا
 
-// RTOS Objects
-osMessageQueueId_t g_adcDataQueueHandle; //Queue to process ADC values
+osMessageQueueId_t g_adcDataQueueHandle;
+volatile uint16_t g_adcBuffer[ADC_NUMBER_OF_CHANNELS]; // سيستخدم "6" من ADC_config.h
 
-// Buffers
-volatile uint16_t g_adcBuffer[ADC_NUMBER_OF_CHANNELS]; // Buffer used by DMA
+// متغيرات لحساب الـ RPM (مبسطة)
+volatile uint32_t g_rpm_left_ticks = 0;
+volatile uint32_t g_rpm_right_ticks = 0;
+// (منطق حساب الـ RPM الفعلي معقد، سنستخدم قيم وهمية مؤقتاً)
+
+// فلاتر RPM (منسوخة من ad2can.c الخاص بهم)
+uint16_t ws_left_values[WS_FILTER_SIZE] = {0};
+int ws_left_counter = 0;
+uint16_t ws_right_values[WS_FILTER_SIZE] = {0};
+int ws_right_counter = 0;
 
 /* --- RTOS Object Initialization --- */
 
@@ -20,6 +30,7 @@ void HW_Init_ADC_RTOS(void)
     const osMessageQueueAttr_t g_adcDataQueue_attributes = {
         .name = "AdcDataQueue"
     };
+    // إنشاء طابور بحجم 6
     g_adcDataQueueHandle = osMessageQueueNew(4, sizeof(uint16_t[ADC_NUMBER_OF_CHANNELS]), &g_adcDataQueue_attributes);
     if (g_adcDataQueueHandle == NULL) { Error_Handler(); }
 }
@@ -28,74 +39,108 @@ void HW_StartADC(void)
 {
     if (HAL_ADC_Start_DMA(&hadc1, (uint32_t*)g_adcBuffer, ADC_NUMBER_OF_CHANNELS) != HAL_OK)
     {
-        Error_Handler(); // Error starting ADC DMA
+        Error_Handler();
     }
 }
 
-/* --- Public Getter Functions --- */
+void HW_Init_RPM(void)
+{
+    HAL_TIM_IC_Start_IT(&htim15, TIM_CHANNEL_1);
+    HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_3);
+}
 
 osMessageQueueId_t HW_GetAdcQueueHandle(void)
 {
     return g_adcDataQueueHandle;
 }
 
-/* --- Calculation Helper Functions --- */
+/* --- Calculation Helper Functions (منسوخة من كودهم) --- */
 
-float AdcValue_To_Voltage(int adc_value) {
-    if (adc_value < 0) adc_value = 0;
-    if (adc_value > (int)ADC_MAX_VALUE) adc_value = (int)ADC_MAX_VALUE;
-    return ((float)adc_value / ADC_MAX_VALUE) * ADC_VREF;
+uint16_t HW_Get_RPM_Left(void)
+{
+    // (منطق وهمي مؤقتاً)
+    g_rpm_left_ticks++;
+    return (uint16_t)g_rpm_left_ticks;
 }
 
-float Voltage_To_Resistance(float voltage) {
-    if (voltage >= NTC_DIVIDER_VOLTAGE) {
-        return INFINITY;
-    }
-    if (voltage <= 0.0f) {
-        return 0.0f;
-    }
-    return (voltage * NTC_DIVIDER_RESISTANCE) / (NTC_DIVIDER_VOLTAGE - voltage);
+uint16_t HW_Get_RPM_Right(void)
+{
+    // (منطق وهمي مؤقتاً)
+    g_rpm_right_ticks++;
+    return (uint16_t)g_rpm_right_ticks;
 }
 
-float Resistance_To_Temperature(float resistance) {
-    if (resistance <= 0.0f) { return -999.0f; } // Invalid resistance
-
-    float log_resistance = logf(resistance);
-    float inv_kelvin = NTC_COEFF_A + (NTC_COEFF_B * log_resistance) + (NTC_COEFF_C * powf(log_resistance, 3));
-
-    if (inv_kelvin == 0.0f) { return -999.0f; } // Invalid calculation
-
-    float kelvin = 1.0f / inv_kelvin;
-    float celsius = kelvin - 273.15f;
-    return celsius;
+// دالة فلتر RPM (منسوخة من ad2can.c الخاص بهم)
+uint16_t HW_MovingMaxL(uint16_t ws_left){
+	ws_left_values[ws_left_counter++] = ws_left;
+	if(ws_left_counter >= WS_FILTER_SIZE) ws_left_counter = 0;
+	for(int i = 0; i < WS_FILTER_SIZE; i++){
+	    if(ws_left_values[i] > ws_left) ws_left = ws_left_values[i];
+	}
+	return ws_left;
 }
+uint16_t HW_MovingMaxR(uint16_t ws_right){
+	ws_right_values[ws_right_counter++] = ws_right;
+	if(ws_right_counter >= WS_FILTER_SIZE) ws_right_counter = 0;
+	for(int i = 0; i < WS_FILTER_SIZE; i++){
+	    if(ws_right_values[i] > ws_right) ws_right = ws_right_values[i];
+	}
+	return ws_right;
+}
+
+// دالة حساب الضغط (منسوخة من ad2can_can.c الخاص بهم)
+uint16_t HW_GetPressure(uint16_t adc_value) {
+	uint32_t pressure = adc_value;
+	if (pressure < PRESSURE_MIN_ADC_VAL || pressure > PRESSURE_MAX_ADC_VAL) {
+		return 0;
+	}
+	pressure = (pressure - PRESSURE_MIN_ADC_VAL) * PRESSURE_MAX_PRESSURE
+			/ (PRESSURE_MAX_ADC_VAL - PRESSURE_MIN_ADC_VAL);
+	if(pressure > 0xFFFF){
+			return 0xFFFF;
+		}
+	return (uint16_t)pressure;
+}
+
+int16_t HW_GetSteeringAngle(uint16_t adc_value) {
+    int16_t steering = adc_value;
+    steering = (1800.0f / (STEERING_RAW_RIGHT - STEERING_RAW_LEFT)) * (steering - STEERING_RAW_LEFT) - 900;
+    return steering;
+}
+
 
 /* --- HAL Callback Functions --- */
 
-/**
-  * @brief  Conversion complete callback in non-blocking mode
-  */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
     static uint8_t first_read_skipped = 0;
-
     if (hadc->Instance == ADC1)
     {
-        if (first_read_skipped == 0)
-        {
+        if (first_read_skipped == 0) {
             first_read_skipped = 1;
             return;
         }
-
+        // نسخ 6 قراءات فقط
         uint16_t snapshot_buffer[ADC_NUMBER_OF_CHANNELS];
         memcpy(snapshot_buffer, (const void*)g_adcBuffer, sizeof(snapshot_buffer));
 
         osStatus_t queue_status = osMessageQueuePut(g_adcDataQueueHandle, &snapshot_buffer, 0, 0);
-
-        if (queue_status != osOK)
-        {
-            // Queue is full, data was dropped. Toggle red LED.
+        if (queue_status != osOK) {
             HAL_GPIO_TogglePin(LED_RED_GPIO_Port, LED_RED_Pin);
         }
+    }
+}
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim->Instance == TIM15)
+    {
+        // (هنا نضع منطق حساب RPM الحقيقي بناءً على التردد الملتقط)
+        // g_rpm_left_ticks = ...
+    }
+    else if (htim->Instance == TIM3) // افترضنا PB0
+    {
+        // (هنا نضع منطق حساب RPM الحقيقي بناءً على التردد الملتقط)
+        // g_rpm_right_ticks = ...
     }
 }
