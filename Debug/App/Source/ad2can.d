@@ -31,8 +31,6 @@ App/Source/ad2can.o: ../App/Source/ad2can.c \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pwr_ex.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim_ex.h \
- F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/app_config.h \
- F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_hw.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h \
  ../Core/Inc/FreeRTOSConfig.h \
@@ -45,7 +43,7 @@ App/Source/ad2can.o: ../App/Source/ad2can.c \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h \
  F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/app_config.h \
- F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_can.h
+ F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_hw.h
 F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal.h:
@@ -79,8 +77,6 @@ F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_pwr_ex.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_tim_ex.h:
-F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/app_config.h:
-F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_hw.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:
 ../Core/Inc/FreeRTOSConfig.h:
@@ -93,4 +89,4 @@ F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_hw.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h:
 F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/app_config.h:
-F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_can.h:
+F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_hw.h:
