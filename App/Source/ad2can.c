@@ -4,7 +4,7 @@
 #include "main.h"
 
 ProcessedADC_t g_sensorData;
-
+osMutexId_t g_sensorDataMutexHandle;
 /* --- RTOS Object Initialization --- */
 
 void App_Init_RTOS(void)

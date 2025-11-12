@@ -27,25 +27,25 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
  11 .ARM.attributes 00000030  00000000  00000000  0000b060  2**0
                   CONTENTS, READONLY
- 12 .debug_info   00021abd  00000000  00000000  0000b090  2**0
+ 12 .debug_info   00021abb  00000000  00000000  0000b090  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_abbrev 00004521  00000000  00000000  0002cb4d  2**0
+ 13 .debug_abbrev 00004513  00000000  00000000  0002cb4b  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_aranges 00001ca0  00000000  00000000  00031070  2**3
+ 14 .debug_aranges 00001ca0  00000000  00000000  00031060  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_rnglists 000015fa  00000000  00000000  00032d10  2**0
+ 15 .debug_rnglists 000015fa  00000000  00000000  00032d00  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_macro  0002554e  00000000  00000000  0003430a  2**0
+ 16 .debug_macro  0002554e  00000000  00000000  000342fa  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   0001f1b3  00000000  00000000  00059858  2**0
+ 17 .debug_line   0001f1b3  00000000  00000000  00059848  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    000f9326  00000000  00000000  00078a0b  2**0
+ 18 .debug_str    000f9326  00000000  00000000  000789fb  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000043  00000000  00000000  00171d31  2**0
+ 19 .comment      00000043  00000000  00000000  00171d21  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  00007d54  00000000  00000000  00171d74  2**2
+ 20 .debug_frame  00007d54  00000000  00000000  00171d64  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 21 .debug_line_str 00000057  00000000  00000000  00179ac8  2**0
+ 21 .debug_line_str 00000057  00000000  00000000  00179ab8  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -80,7 +80,7 @@ Disassembly of section .text:
 
 08000220 <App_Init_RTOS>:
 ProcessedADC_t g_sensorData;
-
+osMutexId_t g_sensorDataMutexHandle;
 /* --- RTOS Object Initialization --- */
 
 void App_Init_RTOS(void)
@@ -145,7 +145,7 @@ void App_Init_RTOS(void)
  8000288:	46bd      	mov	sp, r7
  800028a:	bd80      	pop	{r7, pc}
  800028c:	08009cf0 	.word	0x08009cf0
- 8000290:	200000e8 	.word	0x200000e8
+ 8000290:	20000088 	.word	0x20000088
  8000294:	08009d00 	.word	0x08009d00
  8000298:	0800029d 	.word	0x0800029d
 
@@ -236,12 +236,12 @@ void SensorProcessingTask(void *argument)
     if (osMessageQueueGet(adcQueue, received_adc_data, NULL, osWaitForever) == osOK)
  800031e:	e7c4      	b.n	80002aa <SensorProcessingTask+0xe>
  8000320:	48000400 	.word	0x48000400
- 8000324:	200000e8 	.word	0x200000e8
+ 8000324:	20000088 	.word	0x20000088
  8000328:	2000007c 	.word	0x2000007c
 
 0800032c <CAN_Init_RTOS>:
 uint8_t g_canRxData[8];
-osMutexId_t g_sensorDataMutexHandle;
+
 /* --- RTOS Object Initialization --- */
 
 void CAN_Init_RTOS(void)
@@ -366,7 +366,7 @@ void CAN_Init_RTOS(void)
  8000404:	46bd      	mov	sp, r7
  8000406:	bd80      	pop	{r7, pc}
  8000408:	08009d18 	.word	0x08009d18
- 800040c:	20000088 	.word	0x20000088
+ 800040c:	2000008c 	.word	0x2000008c
  8000410:	08009d28 	.word	0x08009d28
  8000414:	08000429 	.word	0x08000429
  8000418:	08009d34 	.word	0x08009d34
@@ -682,10 +682,10 @@ void CanTxTask(void *argument)
     osDelay(10);
  8000614:	e73a      	b.n	800048c <CanTxTask+0x64>
  8000616:	bf00      	nop
- 8000618:	2000008c 	.word	0x2000008c
+ 8000618:	20000090 	.word	0x20000090
  800061c:	20000204 	.word	0x20000204
- 8000620:	200000b0 	.word	0x200000b0
- 8000624:	200000e8 	.word	0x200000e8
+ 8000620:	200000b4 	.word	0x200000b4
+ 8000624:	20000088 	.word	0x20000088
  8000628:	2000007c 	.word	0x2000007c
  800062c:	48000400 	.word	0x48000400
  8000630:	cccccccd 	.word	0xcccccccd
@@ -754,7 +754,7 @@ void BrakeLightTask(void *argument)
     if (osMessageQueueGet(g_brakeCommandQueueHandle, &received_command, NULL, osWaitForever) == osOK)
  800068c:	e7e0      	b.n	8000650 <BrakeLightTask+0x8>
  800068e:	bf00      	nop
- 8000690:	20000088 	.word	0x20000088
+ 8000690:	2000008c 	.word	0x2000008c
 
 08000694 <HAL_FDCAN_RxFifo0Callback>:
   }
@@ -819,9 +819,9 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
  80006e6:	46bd      	mov	sp, r7
  80006e8:	bd80      	pop	{r7, pc}
  80006ea:	bf00      	nop
- 80006ec:	200000e0 	.word	0x200000e0
- 80006f0:	200000b8 	.word	0x200000b8
- 80006f4:	20000088 	.word	0x20000088
+ 80006ec:	200000e4 	.word	0x200000e4
+ 80006f0:	200000bc 	.word	0x200000bc
+ 80006f4:	2000008c 	.word	0x2000008c
 
 080006f8 <HW_Init_ADC_RTOS>:
 int ws_right_counter = 0;

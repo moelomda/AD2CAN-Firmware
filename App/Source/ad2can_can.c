@@ -11,7 +11,7 @@ FDCAN_TxHeaderTypeDef g_canTxHeader;
 uint8_t g_canTxData[8];
 FDCAN_RxHeaderTypeDef g_canRxHeader;
 uint8_t g_canRxData[8];
-osMutexId_t g_sensorDataMutexHandle;
+
 /* --- RTOS Object Initialization --- */
 
 void CAN_Init_RTOS(void)
