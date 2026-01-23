@@ -160,17 +160,24 @@ int main(void)
    * ================================================================ */
 
     HW_Init_ADC_RTOS();    // Creates ADC Queue
-    CAN_Init_RTOS();     // Creates CAN Tasks & Queue
-    App_Init_RTOS();     // Creates App Task & Mutex
+    CAN_Init_RTOS();       // Creates CAN Tasks & Queue
+    App_Init_RTOS();       // Creates App Task & Mutex
+    
+    /* ================================================================
+     *  HARDWARE START SECTION - CRITICAL!
+     *  Must be called AFTER RTOS objects are created
+     *  but BEFORE scheduler starts
+     * ================================================================ */
+    
+    // Start FDCAN peripheral (needed for RX interrupts to work)
+    if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK) {
+        Error_Handler();
+    }
+    
+    // Start ADC with DMA (begins filling the queue)
+    HW_StartADC();
+    
     /* ================================================================ */
-    /* ================================================================ */
-
-
-
-
-
-
-    /* 3. Start Hardware that requires RTOS objects to be ready */
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */

@@ -64,8 +64,7 @@ void CanTxTask(void *argument)
   g_canTxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
   g_canTxHeader.MessageMarker = 0;
 
-  if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK)
-  { Error_Handler(); }
+  // REMOVED: HAL_FDCAN_Start() - now called in main.c before scheduler starts
 
   g_canTxHeader.Identifier = CAN_ID_AD2CAN_STARTUP;
   g_canTxHeader.DataLength = FDCAN_DLC_BYTES_1;

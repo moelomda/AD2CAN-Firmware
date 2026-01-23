@@ -9,4 +9,4 @@
 ../App/Source/ad2can_hw.c:96:10:HW_GetPressure	24	static
 ../App/Source/ad2can_hw.c:109:9:HW_GetSteeringAngle	24	static
 ../App/Source/ad2can_hw.c:121:6:HAL_ADC_ConvCpltCallback	24	static
-../App/Source/ad2can_hw.c:155:6:HAL_TIM_IC_CaptureCallback	16	static
+../App/Source/ad2can_hw.c:169:6:HAL_TIM_IC_CaptureCallback	16	static

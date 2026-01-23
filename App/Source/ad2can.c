@@ -32,8 +32,8 @@ void SensorProcessingTask(void *argument)
 
   osMessageQueueId_t adcQueue = HW_GetAdcQueueHandle();
 
-  HW_StartADC();
-  //HW_Init_RPM();
+  // REMOVED: HW_StartADC() - now called in main.c before scheduler starts
+  // HW_Init_RPM(); // Uncomment when you implement RPM
 
   for(;;)
   {

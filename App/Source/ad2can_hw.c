@@ -121,16 +121,30 @@ uint16_t test_copy[ADC_NUMBER_OF_CHANNELS];
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
     static uint8_t first_read_skipped = 0;
+    static uint8_t conversion_count = 0;
     
     if (hadc->Instance == ADC1)
     {
         // Skip first conversion (sometimes contains garbage)
         if (first_read_skipped == 0) {
             first_read_skipped = 1;
+            conversion_count = 0;
             return;
         }
 
-        // Copy buffer IMMEDIATELY to test if DMA is working
+        // CRITICAL FIX: Only process after ALL 6 channels complete
+        // In continuous mode with DMA, callback fires after EACH conversion
+        conversion_count++;
+        
+        if (conversion_count < ADC_NUMBER_OF_CHANNELS) {
+            // Not all channels ready yet, wait for next callback
+            return;
+        }
+        
+        // Reset counter for next sequence
+        conversion_count = 0;
+
+        // Copy buffer IMMEDIATELY to verify DMA is working
         for(int i = 0; i < ADC_NUMBER_OF_CHANNELS; i++) {
             test_copy[i] = g_adcBuffer[i];
         }

@@ -8,5 +8,5 @@
 ../App/Source/ad2can_hw.c:86:10:HW_MovingMaxR	4
 ../App/Source/ad2can_hw.c:96:10:HW_GetPressure	4
 ../App/Source/ad2can_hw.c:109:9:HW_GetSteeringAngle	1
-../App/Source/ad2can_hw.c:121:6:HAL_ADC_ConvCpltCallback	5
-../App/Source/ad2can_hw.c:155:6:HAL_TIM_IC_CaptureCallback	1
+../App/Source/ad2can_hw.c:121:6:HAL_ADC_ConvCpltCallback	6
+../App/Source/ad2can_hw.c:169:6:HAL_TIM_IC_CaptureCallback	1
