@@ -46,12 +46,19 @@
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
-FDCAN_HandleTypeDef hfdcan1;         /*Handles for each HW per*/
+
+FDCAN_HandleTypeDef hfdcan1;
+
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim15;
 
 /* Definitions for defaultTask */
-
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -64,6 +71,7 @@ static void MX_ADC1_Init(void);
 static void MX_FDCAN1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM15_Init(void);
+void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -133,6 +141,7 @@ int main(void)
 
   /* Create the thread(s) */
   /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -153,7 +162,6 @@ int main(void)
     HW_Init_ADC_RTOS();    // Creates ADC Queue
     CAN_Init_RTOS();     // Creates CAN Tasks & Queue
     App_Init_RTOS();     // Creates App Task & Mutex
-    HW_StartADC();
     /* ================================================================ */
     /* ================================================================ */
 
@@ -249,6 +257,7 @@ static void MX_ADC1_Init(void)
   */
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.GainCompensation = 0;
   hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
@@ -360,10 +369,10 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.AutoRetransmission = DISABLE;
   hfdcan1.Init.TransmitPause = DISABLE;
   hfdcan1.Init.ProtocolException = DISABLE;
-  hfdcan1.Init.NominalPrescaler = 4;
+  hfdcan1.Init.NominalPrescaler = 16;
   hfdcan1.Init.NominalSyncJumpWidth = 1;
-  hfdcan1.Init.NominalTimeSeg1 = 13;
-  hfdcan1.Init.NominalTimeSeg2 = 2;
+  hfdcan1.Init.NominalTimeSeg1 = 1;
+  hfdcan1.Init.NominalTimeSeg2 = 1;
   hfdcan1.Init.DataPrescaler = 1;
   hfdcan1.Init.DataSyncJumpWidth = 1;
   hfdcan1.Init.DataTimeSeg1 = 1;
@@ -586,8 +595,16 @@ static void MX_GPIO_Init(void)
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
-
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
   /* USER CODE END 5 */
+}
 
 /**
   * @brief  Period elapsed callback in non blocking mode

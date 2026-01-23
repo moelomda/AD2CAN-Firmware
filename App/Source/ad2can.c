@@ -1,8 +1,7 @@
-#include "ad2can.h"
 #include "ad2can_hw.h"
 #include <string.h>
 #include "main.h"
-
+#include"ad2can.h"
 ProcessedADC_t g_sensorData;
 osMutexId_t g_sensorDataMutexHandle;
 /* --- RTOS Object Initialization --- */
@@ -18,16 +17,14 @@ void App_Init_RTOS(void)
     const osThreadAttr_t sensorProcessingTask_attributes = {
         .name = "SensorProcessingTask",
         .priority = (osPriority_t) osPriorityNormal,
-        .stack_size = 256 * 4
+        .stack_size = 512 * 4
     };
     if(osThreadNew(SensorProcessingTask, NULL, &sensorProcessingTask_attributes) == NULL) { Error_Handler(); }
 }
 
 /* --- Task Definitions --- */
 
-/**
- * @brief مهمة معالجة بيانات الـ ADC الـ 6 المستلمة من الـ Queue
- */
+
 void SensorProcessingTask(void *argument)
 {
   uint16_t received_adc_data[ADC_NUMBER_OF_CHANNELS]; // سيستقبل 6 قراءات
@@ -35,16 +32,14 @@ void SensorProcessingTask(void *argument)
 
   osMessageQueueId_t adcQueue = HW_GetAdcQueueHandle();
 
-
+  HW_StartADC();
+  //HW_Init_RPM();
 
   for(;;)
   {
-
     if (osMessageQueueGet(adcQueue, received_adc_data, NULL, osWaitForever) == osOK)
     {
-        HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
-
-
+        // Data received from queue - process it
         local_sensor_data.brake_pressure_front = HW_GetPressure(received_adc_data[0]); // Rank 1
         local_sensor_data.brake_pressure_rear  = HW_GetPressure(received_adc_data[1]); // Rank 2
         local_sensor_data.steering_angle       = HW_GetSteeringAngle(received_adc_data[2]); // Rank 3 (CH5)

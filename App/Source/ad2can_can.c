@@ -27,21 +27,21 @@ void CAN_Init_RTOS(void)
     const osThreadAttr_t canTxTask_attributes = {
         .name = "CanTxTask",
         .priority = (osPriority_t) osPriorityNormal,
-        .stack_size = 256 * 4 // زيادة الـ Stack قليلاً
+        .stack_size =  512 * 4
     };
     if(osThreadNew(CanTxTask, NULL, &canTxTask_attributes) == NULL) { Error_Handler(); }
 
     const osThreadAttr_t canRxTask_attributes = {
         .name = "CanRxTask",
         .priority = (osPriority_t) osPriorityBelowNormal,
-        .stack_size = 128 * 4
+        .stack_size = 256 * 4
     };
     if(osThreadNew(CanRxTask, NULL, &canRxTask_attributes) == NULL) { Error_Handler(); }
 
     const osThreadAttr_t brakeLightTask_attributes = {
         .name = "BrakeLightTask",
         .priority = (osPriority_t) osPriorityNormal,
-        .stack_size = 128 * 4
+        .stack_size = 256 * 4
     };
     if(osThreadNew(BrakeLightTask, NULL, &brakeLightTask_attributes) == NULL) { Error_Handler(); }
 }

@@ -65,8 +65,8 @@ all: main-build
 main-build: High_VoltageTeam.elf secondary-outputs
 
 # Tool invocations
-High_VoltageTeam.elf High_VoltageTeam.map: $(OBJS) $(USER_OBJS) F:\study\FAU\New\ folder\High_VoltageTeam\STM32G473CETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "High_VoltageTeam.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"F:\study\FAU\New folder\High_VoltageTeam\STM32G473CETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="High_VoltageTeam.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+High_VoltageTeam.elf High_VoltageTeam.map: $(OBJS) $(USER_OBJS) F:\study\FAU\HV\High_VoltageTeam\High_VoltageTeam\STM32G473CETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "High_VoltageTeam.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"F:\study\FAU\HV\High_VoltageTeam\High_VoltageTeam\STM32G473CETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="High_VoltageTeam.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

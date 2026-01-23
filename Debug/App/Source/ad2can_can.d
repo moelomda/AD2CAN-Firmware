@@ -1,5 +1,5 @@
 App/Source/ad2can_can.o: ../App/Source/ad2can_can.c \
- F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_can.h \
+ F:/study/FAU/HV/High_VoltageTeam/High_VoltageTeam/App/Inc/ad2can_can.h \
  ../Core/Inc/main.h ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal.h \
  ../Core/Inc/stm32g4xx_hal_conf.h \
  ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal_rcc.h \
@@ -42,10 +42,10 @@ App/Source/ad2can_can.o: ../App/Source/ad2can_can.c \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h \
- F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/app_config.h \
- F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can.h \
- F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_hw.h
-F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_can.h:
+ F:/study/FAU/HV/High_VoltageTeam/High_VoltageTeam/App/Inc/app_config.h \
+ F:/study/FAU/HV/High_VoltageTeam/High_VoltageTeam/App/Inc/ad2can.h \
+ F:/study/FAU/HV/High_VoltageTeam/High_VoltageTeam/App/Inc/ad2can_hw.h
+F:/study/FAU/HV/High_VoltageTeam/High_VoltageTeam/App/Inc/ad2can_can.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32G4xx_HAL_Driver/Inc/stm32g4xx_hal.h:
 ../Core/Inc/stm32g4xx_hal_conf.h:
@@ -89,6 +89,6 @@ F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_can.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h:
-F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/app_config.h:
-F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can.h:
-F:/study/FAU/New\ folder/High_VoltageTeam/App/Inc/ad2can_hw.h:
+F:/study/FAU/HV/High_VoltageTeam/High_VoltageTeam/App/Inc/app_config.h:
+F:/study/FAU/HV/High_VoltageTeam/High_VoltageTeam/App/Inc/ad2can.h:
+F:/study/FAU/HV/High_VoltageTeam/High_VoltageTeam/App/Inc/ad2can_hw.h:

@@ -37,6 +37,10 @@ void HW_Init_ADC_RTOS(void)
 
 void HW_StartADC(void)
 {
+    if (HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED) != HAL_OK)
+    {
+        Error_Handler();
+    }
     if (HAL_ADC_Start_DMA(&hadc1, (uint32_t*)g_adcBuffer, ADC_NUMBER_OF_CHANNELS) != HAL_OK)
     {
         Error_Handler();
@@ -111,26 +115,43 @@ int16_t HW_GetSteeringAngle(uint16_t adc_value) {
 
 /* --- HAL Callback Functions --- */
 
+// Temporary test buffer to verify DMA is writing
+uint16_t test_copy[ADC_NUMBER_OF_CHANNELS];
+
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
     static uint8_t first_read_skipped = 0;
+    
     if (hadc->Instance == ADC1)
     {
+        // Skip first conversion (sometimes contains garbage)
         if (first_read_skipped == 0) {
             first_read_skipped = 1;
             return;
         }
-        // نسخ 6 قراءات فقط
-        uint16_t snapshot_buffer[ADC_NUMBER_OF_CHANNELS];
-        memcpy(snapshot_buffer, (const void*)g_adcBuffer, sizeof(snapshot_buffer));
 
-        osStatus_t queue_status = osMessageQueuePut(g_adcDataQueueHandle, &snapshot_buffer, 0, 0);
+        // Copy buffer IMMEDIATELY to test if DMA is working
+        for(int i = 0; i < ADC_NUMBER_OF_CHANNELS; i++) {
+            test_copy[i] = g_adcBuffer[i];
+        }
+
+        // At this point: DMA has finished writing all 6 channels to g_adcBuffer
+        // The callback is triggered by DMA TC (Transfer Complete)
+        // Queue will make a copy of the buffer
+        osStatus_t queue_status = osMessageQueuePut(g_adcDataQueueHandle, 
+                                                     (const void*)g_adcBuffer, 
+                                                     0, 
+                                                     0);
+        
         if (queue_status != osOK) {
+            // Queue full - data loss
             HAL_GPIO_TogglePin(LED_RED_GPIO_Port, LED_RED_Pin);
+        } else {
+            // Successfully queued - toggle green LED to show activity
+            HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
         }
     }
 }
-
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Instance == TIM15)
