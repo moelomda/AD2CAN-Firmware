@@ -1,0 +1,4 @@
+../App/Src/Drivers/sensors.c:8:10:Sensor_CalculatePressure	24	static
+../App/Src/Drivers/sensors.c:26:9:Sensor_CalculateSteeringAngle	24	static
+../App/Src/Drivers/sensors.c:33:10:Sensor_FilterRPM_Left	24	static
+../App/Src/Drivers/sensors.c:47:10:Sensor_FilterRPM_Right	24	static

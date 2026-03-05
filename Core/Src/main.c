@@ -22,10 +22,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "app_init.h"
 #include "app_config.h"
-#include "ad2can_hw.h"
-#include "ad2can_can.h"
-#include "ad2can.h"
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -60,7 +59,14 @@ const osThreadAttr_t defaultTask_attributes = {
   .stack_size = 128 * 4
 };
 /* USER CODE BEGIN PV */
-
+/* Debug trace: watch in Live Expressions to see execution progress */
+volatile uint32_t dbg_init_stage = 0;
+volatile uint32_t dbg_free_heap = 0;
+volatile uint32_t dbg_sensor_count = 0;
+volatile uint32_t dbg_canrx_count = 0;
+volatile uint32_t dbg_cantx_count = 0;
+volatile uint32_t dbg_adc_callback_count = 0;
+volatile uint32_t dbg_adc_queue_fail = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -79,6 +85,13 @@ void StartDefaultTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+/* ITM Printf redirect for SWV debug console */
+int __io_putchar(int ch)
+{
+    ITM_SendChar(ch);
+    return ch;
+}
 
 /* USER CODE END 0 */
 
@@ -151,37 +164,15 @@ int main(void)
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
 
+    App_Init();   /* Create all RTOS objects and tasks */
+    App_Start();  /* Start FDCAN and ADC+DMA */
 
-
-  /* ================================================================
-   *  CUSTOM CODE SECTION
-   * Author  : Mohamed Youssef
-   * Purpose : Custom initialization and RTOS task creation
-   * ================================================================ */
-
-    HW_Init_ADC_RTOS();    // Creates ADC Queue
-    CAN_Init_RTOS();       // Creates CAN Tasks & Queue
-    App_Init_RTOS();       // Creates App Task & Mutex
-    
-    /* ================================================================
-     *  HARDWARE START SECTION - CRITICAL!
-     *  Must be called AFTER RTOS objects are created
-     *  but BEFORE scheduler starts
-     * ================================================================ */
-    
-    // Start FDCAN peripheral (needed for RX interrupts to work)
-    if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK) {
-        Error_Handler();
-    }
-    
-    // Start ADC with DMA (begins filling the queue)
-    HW_StartADC();
-    
-    /* ================================================================ */
+    printf("[MAIN] About to start kernel. Free heap: %u\r\n", (unsigned int)xPortGetFreeHeapSize());
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
   osKernelStart();
+  printf("[MAIN] ERROR: should never reach here!\r\n");
 
   /* We should never get here as control is now taken by the scheduler */
 
@@ -270,12 +261,12 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   hadc1.Init.LowPowerAutoWait = DISABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.NbrOfConversion = 6;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.DMAContinuousRequests = ENABLE;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
   hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   hadc1.Init.OversamplingMode = DISABLE;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -367,24 +358,25 @@ static void MX_FDCAN1_Init(void)
   /* USER CODE END FDCAN1_Init 0 */
 
   /* USER CODE BEGIN FDCAN1_Init 1 */
-
+  HAL_NVIC_SetPriority(FDCAN1_IT0_IRQn, 6, 0);
+  HAL_NVIC_EnableIRQ(FDCAN1_IT0_IRQn);
   /* USER CODE END FDCAN1_Init 1 */
   hfdcan1.Instance = FDCAN1;
   hfdcan1.Init.ClockDivider = FDCAN_CLOCK_DIV1;
   hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
   hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
-  hfdcan1.Init.AutoRetransmission = DISABLE;
+  hfdcan1.Init.AutoRetransmission = ENABLE;
   hfdcan1.Init.TransmitPause = DISABLE;
   hfdcan1.Init.ProtocolException = DISABLE;
-  hfdcan1.Init.NominalPrescaler = 16;
+  hfdcan1.Init.NominalPrescaler = 4;
   hfdcan1.Init.NominalSyncJumpWidth = 1;
-  hfdcan1.Init.NominalTimeSeg1 = 1;
-  hfdcan1.Init.NominalTimeSeg2 = 1;
+  hfdcan1.Init.NominalTimeSeg1 = 12;
+  hfdcan1.Init.NominalTimeSeg2 = 3;
   hfdcan1.Init.DataPrescaler = 1;
   hfdcan1.Init.DataSyncJumpWidth = 1;
   hfdcan1.Init.DataTimeSeg1 = 1;
   hfdcan1.Init.DataTimeSeg2 = 1;
-  hfdcan1.Init.StdFiltersNbr = 0;
+  hfdcan1.Init.StdFiltersNbr = 1;
   hfdcan1.Init.ExtFiltersNbr = 0;
   hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
   if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
@@ -393,23 +385,29 @@ static void MX_FDCAN1_Init(void)
   }
   /* USER CODE BEGIN FDCAN1_Init 2 */
     FDCAN_FilterTypeDef sFilterConfig;
-    sFilterConfig.IdType = FDCAN_STANDARD_ID;         // Standard ID filter
-    sFilterConfig.FilterIndex = 0;                    // Use filter index 0
-    sFilterConfig.FilterType = FDCAN_FILTER_MASK;     // Use ID + Mask type
-    sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0; // Store accepted messages in FIFO 0
-    sFilterConfig.FilterID1 = 0x200;                  // The ID we want to receive (Brake command)
-    sFilterConfig.FilterID2 = 0x7FF;                  // Mask: 0x7FF means all bits must match for Standard ID
 
+    /* Filter 0: Brake command ID 0x200 (exact match) */
+    sFilterConfig.IdType = FDCAN_STANDARD_ID;
+    sFilterConfig.FilterIndex = 0;
+    sFilterConfig.FilterType = FDCAN_FILTER_DUAL;
+    sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+    sFilterConfig.FilterID1 = CAN_ID_RX_BRAKE;
+    sFilterConfig.FilterID2 = CAN_ID_HEARTBEAT;
     if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK)
     {
-      Error_Handler(); // Filter configuration error
+      Error_Handler();
     }
 
-    // --- Activate Reception Interrupt Notification ---
-    // Tell HAL to call HAL_FDCAN_RxFifo0Callback when a message arrives in FIFO 0
+    /* Reject non-matching frames */
+    if (HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_REJECT,
+                                      FDCAN_REJECT_REMOTE, FDCAN_REJECT_REMOTE) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
     if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK)
     {
-      Error_Handler(); // Notification activation error
+      Error_Handler();
     }
   /* USER CODE END FDCAN1_Init 2 */
 
@@ -468,7 +466,8 @@ static void MX_TIM3_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM3_Init 2 */
-
+  HAL_NVIC_SetPriority(TIM3_IRQn, 6, 0);
+  HAL_NVIC_EnableIRQ(TIM3_IRQn);
   /* USER CODE END TIM3_Init 2 */
 
 }
@@ -527,7 +526,8 @@ static void MX_TIM15_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM15_Init 2 */
-
+  HAL_NVIC_SetPriority(TIM1_BRK_TIM15_IRQn, 6, 0);
+  HAL_NVIC_EnableIRQ(TIM1_BRK_TIM15_IRQn);
   /* USER CODE END TIM15_Init 2 */
 
 }
@@ -605,7 +605,6 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  /* Infinite loop */
   for(;;)
   {
     osDelay(1);
@@ -631,7 +630,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-
+  /* RPM timer overflow counting - declared in tim_hal.c */
+  extern volatile uint32_t left_overflow_count;
+  extern volatile uint32_t right_overflow_count;
+  if (htim->Instance == TIM15)
+  {
+    left_overflow_count++;
+  }
+  else if (htim->Instance == TIM3)
+  {
+    right_overflow_count++;
+  }
   /* USER CODE END Callback 1 */
 }
 
@@ -642,7 +651,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)
   {
@@ -660,8 +668,6 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

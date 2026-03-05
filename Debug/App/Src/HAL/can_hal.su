@@ -1,0 +1,6 @@
+../App/Src/HAL/can_hal.c:15:6:CAN_HAL_Init	32	static
+../App/Src/HAL/can_hal.c:34:20:CAN_HAL_GetBrakeQueueHandle	4	static
+../App/Src/HAL/can_hal.c:39:6:CAN_HAL_GetHeartbeatActive	4	static
+../App/Src/HAL/can_hal.c:44:6:CAN_HAL_ClearHeartbeatActive	4	static
+../App/Src/HAL/can_hal.c:49:19:CAN_HAL_Transmit	24	static
+../App/Src/HAL/can_hal.c:68:6:HAL_FDCAN_RxFifo0Callback	24	static

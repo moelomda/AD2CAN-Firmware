@@ -1,0 +1,6 @@
+../App/Src/HAL/adc_hal.c:9:6:ADC_HAL_Init	32	static
+../App/Src/HAL/adc_hal.c:20:6:ADC_HAL_Start	8	static
+../App/Src/HAL/adc_hal.c:32:20:ADC_HAL_GetQueueHandle	4	static
+../App/Src/HAL/adc_hal.c:37:11:ADC_HAL_GetBuffer	4	static
+../App/Src/HAL/adc_hal.c:42:6:ADC_HAL_StartOnce	8	static
+../App/Src/HAL/adc_hal.c:47:6:HAL_ADC_ConvCpltCallback	24	static

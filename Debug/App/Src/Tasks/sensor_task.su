@@ -1,0 +1,4 @@
+../App/Src/Tasks/sensor_task.c:12:6:SensorTask_Init	64	static
+../App/Src/Tasks/sensor_task.c:32:24:SensorTask_GetDataPointer	4	static
+../App/Src/Tasks/sensor_task.c:37:13:SensorTask_GetMutexHandle	4	static
+../App/Src/Tasks/sensor_task.c:42:6:SensorTask_Run	48	static

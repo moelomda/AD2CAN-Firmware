@@ -65,7 +65,10 @@ void Error_Handler(void);
 #define LED_RED_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
+#define WS_LEFT_Pin GPIO_PIN_2
+#define WS_LEFT_GPIO_Port GPIOA
+#define WS_RIGHT_Pin GPIO_PIN_0
+#define WS_RIGHT_GPIO_Port GPIOB
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

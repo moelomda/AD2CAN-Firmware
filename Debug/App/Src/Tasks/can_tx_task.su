@@ -1,0 +1,2 @@
+../App/Src/Tasks/can_tx_task.c:10:6:CanTxTask_Init	48	static
+../App/Src/Tasks/can_tx_task.c:22:6:CanTxTask_Run	40	static
