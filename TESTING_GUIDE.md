@@ -4,6 +4,11 @@
 **MCU:** STM32G473CE (Cortex-M4F, 64 MHz)  
 **Date:** March 2026  
 
+> **Note:** Before running hardware tests, all firmware logic has been validated
+> with 120 automated software tests (unit + integration + acceptance).
+> See `Tests/TEST_RESULTS.md` for full results.
+> Run `cd Tests && run_tests.bat` to re-verify after any code changes.
+
 ---
 
 ## Table of Contents

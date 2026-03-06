@@ -124,7 +124,10 @@ HAL_StatusTypeDef HAL_FDCAN_AddMessageToTxFifoQ(FDCAN_HandleTypeDef *hfdcan,
                                                   FDCAN_TxHeaderTypeDef *pTxHeader,
                                                   uint8_t *pTxData)
 {
-    if (mock_hal.can_tx_count < MOCK_MAX_CAN_MESSAGES) {
+    if (mock_hal.can_tx_return_status != HAL_OK) {
+        return mock_hal.can_tx_return_status;
+    }
+    if (pTxHeader != NULL && pTxData != NULL && mock_hal.can_tx_count < MOCK_MAX_CAN_MESSAGES) {
         MockCanMessage_t *msg = &mock_hal.can_tx_messages[mock_hal.can_tx_count];
         msg->id = pTxHeader->Identifier;
         

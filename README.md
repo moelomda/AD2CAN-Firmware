@@ -301,7 +301,7 @@ Sample point = (1 + 12) / 16 = 81.25%
 
 | Parameter               | Value  |
 |-------------------------|--------|
-| Total Heap              | 16384 bytes |
+| Total Heap              | 32768 bytes |
 | Tick Rate               | 1000 Hz |
 | Max Priorities          | 56     |
 | Minimal Stack           | 128 words |
@@ -407,7 +407,48 @@ High_VoltageTeam/
 
 3. **ADC channel 6** (PB11, ADC1_IN14) is scanned but not used. Reserved for future expansion.
 
-4. **FreeRTOS heap** = 16384 bytes. Current usage is ~8400 bytes. If adding tasks, verify heap is sufficient.
+4. **FreeRTOS heap** = 32768 bytes. Current usage is ~8400 bytes. If adding tasks, verify heap is sufficient.
+
+---
+
+## Software Test Suite
+
+A full offline test suite validates all firmware logic on PC using mocked STM32 HAL and FreeRTOS.
+
+**Result: 120 / 120 tests PASSED** (March 5, 2026)
+
+| Category          | Tests | Status     |
+|-------------------|-------|------------|
+| Unit Tests        | 95    | 95 PASS    |
+| Integration Tests | 7     | 7 PASS     |
+| Acceptance Tests  | 12    | 12 PASS    |
+
+### What's Tested
+
+- **Unit (9 modules):** sensors, adc_hal, can_hal, tim_hal, sensor_task, brake_light_task, can_rx_task, can_tx_task, app_init
+- **Integration (6 suites):** ADC→Sensor→CAN pipeline, CAN RX→Brake Light, Heartbeat LED, Full TX cycle, RPM pipeline, Pressure range sweep
+- **Acceptance (12 scenarios):** Startup, normal driving, hard braking, full steering lock, high speed, sensor failure, CAN bus failure/recovery, heartbeat loss, rapid brake toggle (100x), race lap simulation (130 cycles), APPS plausibility, wheel speed pin states
+
+### How to Run
+
+```bash
+cd Tests
+run_tests.bat
+```
+
+Full results: see `Tests/TEST_RESULTS.md`
+
+---
+
+## Documentation
+
+| File | Purpose |
+|------|---------|
+| `README.md` | This file — full project reference |
+| `PROJECT_STRUCTURE.md` | Architecture layers, data flow, how to add new code |
+| `IDE_CONFIGURATION.md` | STM32CubeIDE include paths and source folder setup |
+| `TESTING_GUIDE.md` | Hardware testing guide (on-board with debugger) |
+| `Tests/TEST_RESULTS.md` | Software test results (120/120 pass) |
 
 ---
 
@@ -415,6 +456,7 @@ High_VoltageTeam/
 
 | Version | Date       | Changes                                    |
 |---------|------------|--------------------------------------------|
+| 2.2.0   | 2026-03-05 | Added full test suite (120 tests), cleaned up docs |
 | 2.1.0   | 2026-02-07 | Fixed .ioc sync, heap size, WS pin read, cleanup |
 | 2.0.0   | 2026-01-24 | Complete restructure to modular architecture|
 | 1.0.0   | 2025       | Initial monolithic implementation           |

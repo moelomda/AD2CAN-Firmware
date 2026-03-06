@@ -41,6 +41,15 @@ High_VoltageTeam/
 |
 +-- Drivers/                    ST HAL library (do not modify)
 +-- Middlewares/                 FreeRTOS (do not modify)
++-- Tests/                      PC-side test suite (120 tests)
+|   +-- Unity/                 Lightweight test framework
+|   +-- Mocks/                 STM32 HAL + FreeRTOS mocks
+|   +-- Unit/                  9 unit test files (one per module)
+|   +-- Integration/           Integration pipeline tests
+|   +-- Acceptance/            12 driving scenario tests
+|   +-- TEST_RESULTS.md        Full test results log
+|   +-- run_tests.bat          Build and run all tests
+|   +-- CMakeLists.txt         CMake build (optional)
 +-- High_VoltageTeam.ioc        CubeMX project file
 ```
 
@@ -131,5 +140,5 @@ Middlewares
 
 ---
 
-**Version:** 2.1.0
-**Date:** February 7, 2026
+**Version:** 2.2.0
+**Date:** March 5, 2026

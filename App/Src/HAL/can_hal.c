@@ -17,7 +17,7 @@ void CAN_HAL_Init(void)
     const osMessageQueueAttr_t brakeQueue_attributes = {
         .name = "BrakeCmdQueue"
     };
-    brakeCommandQueueHandle = osMessageQueueNew(1, sizeof(uint8_t), &brakeQueue_attributes);
+    brakeCommandQueueHandle = osMessageQueueNew(4, sizeof(uint8_t), &brakeQueue_attributes);
     if (brakeCommandQueueHandle == NULL) {
         Error_Handler();
     }
@@ -67,10 +67,17 @@ HAL_StatusTypeDef CAN_HAL_Transmit(uint32_t id, uint8_t* data, uint32_t length)
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 {
+    extern volatile uint32_t dbg_can_rx_isr_count;
+    extern volatile uint32_t dbg_brake_cmd_count;
+    extern volatile uint32_t dbg_last_rx_id;
+
     if((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != RESET)
     {
         if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &canRxHeader, canRxData) == HAL_OK)
         {
+            dbg_can_rx_isr_count++;
+            dbg_last_rx_id = canRxHeader.Identifier;
+
             switch (canRxHeader.Identifier)
             {
             case CAN_ID_RX_BRAKE:
@@ -78,6 +85,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
                 {
                     uint8_t brake_command = canRxData[0];
                     osMessageQueuePut(brakeCommandQueueHandle, &brake_command, 0, 0);
+                    dbg_brake_cmd_count++;
                 }
                 break;
 

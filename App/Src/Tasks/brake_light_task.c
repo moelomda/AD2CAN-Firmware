@@ -19,6 +19,9 @@ void BrakeLightTask_Run(void *argument)
     uint8_t received_command;
     osMessageQueueId_t brakeQueue = CAN_HAL_GetBrakeQueueHandle();
     
+    extern volatile uint32_t dbg_brake_on_count;
+    extern volatile uint32_t dbg_brake_off_count;
+
     for(;;)
     {
         if (osMessageQueueGet(brakeQueue, &received_command, NULL, osWaitForever) == osOK)
@@ -26,10 +29,12 @@ void BrakeLightTask_Run(void *argument)
             if (received_command == 1)
             {
                 HAL_GPIO_WritePin(BL_ENABLE_GPIO_Port, BL_ENABLE_Pin, GPIO_PIN_SET);
+                dbg_brake_on_count++;
             }
             else
             {
                 HAL_GPIO_WritePin(BL_ENABLE_GPIO_Port, BL_ENABLE_Pin, GPIO_PIN_RESET);
+                dbg_brake_off_count++;
             }
         }
     }

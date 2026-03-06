@@ -256,6 +256,12 @@ void test_filter_rpm_independence(void)
 /* ============================================================================
  * Test Runner
  * ============================================================================ */
+int main(void)
+{
+    run_sensor_tests();
+    return unity_print_summary();
+}
+
 void run_sensor_tests(void)
 {
     UNITY_BEGIN_SUITE("Sensors - Pressure Calculation");

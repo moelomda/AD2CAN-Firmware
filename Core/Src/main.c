@@ -67,6 +67,11 @@ volatile uint32_t dbg_canrx_count = 0;
 volatile uint32_t dbg_cantx_count = 0;
 volatile uint32_t dbg_adc_callback_count = 0;
 volatile uint32_t dbg_adc_queue_fail = 0;
+volatile uint32_t dbg_can_rx_isr_count = 0;
+volatile uint32_t dbg_brake_cmd_count = 0;
+volatile uint32_t dbg_last_rx_id = 0;
+volatile uint32_t dbg_brake_on_count = 0;
+volatile uint32_t dbg_brake_off_count = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
