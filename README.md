@@ -1,4 +1,4 @@
-# AD2CAN Sensor Node — High Voltage Team
+# AD2CAN Sensor Node — High-voltage motorsports Team
 
 Firmware for the sensor-acquisition node on the FAU Formula Student car. It reads
 the analog and wheel-speed sensors, publishes them on the CAN bus at 100 Hz, and
