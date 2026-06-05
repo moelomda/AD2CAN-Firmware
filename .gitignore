@@ -1,0 +1,25 @@
+# Build output (STM32CubeIDE)
+/Debug/
+/Release/
+
+# Host test build output
+Tests/build/
+
+# Compiler-generated artifacts
+*.o
+*.obj
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.list
+*.su
+*.cyclo
+*.d
+*.exe
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.bak
