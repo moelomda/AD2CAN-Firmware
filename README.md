@@ -181,6 +181,16 @@ For on-hardware bring-up you need an ST-Link, a CAN transceiver (e.g.
 SN65HVD230), a CAN analyzer, a 120 Ω bus termination, and the five analog and two
 wheel-speed sensors wired to the pins above.
 
+## Contributing / keeping the repo in sync
+
+Keep the remote up to date so everyone works off the same code:
+
+- `git pull` before you start, and work on a feature branch (not directly on `master`).
+- After changes, run the tests (`cd Tests && run_tests.bat`) — they must be all green.
+- Commit with a clear message and push your branch; open a pull request into `master`.
+- When you change pins, CAN IDs, tasks, build steps, or calibration constants,
+  update this README in the same commit so it always matches the code.
+
 ## Known issue
 
 The green LED is written from two places: the CAN RX interrupt sets it directly
