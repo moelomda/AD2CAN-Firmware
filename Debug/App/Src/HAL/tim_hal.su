@@ -1,4 +1,0 @@
-../App/Src/HAL/tim_hal.c:26:6:TIM_HAL_Init	8	static
-../App/Src/HAL/tim_hal.c:37:10:TIM_HAL_GetRPM_Left	56	static
-../App/Src/HAL/tim_hal.c:56:10:TIM_HAL_GetRPM_Right	56	static
-../App/Src/HAL/tim_hal.c:73:6:HAL_TIM_IC_CaptureCallback	32	static
